@@ -1,4 +1,4 @@
-'use strict'
+"use strict";
 
 /** @typedef {import('@adonisjs/framework/src/Request')} Request */
 /** @typedef {import('@adonisjs/framework/src/Response')} Response */
@@ -7,6 +7,8 @@
 /**
  * Resourceful controller for interacting with posts
  */
+const Post = use("App/Models/Post");
+
 class PostController {
   /**
    * Show a list of all posts.
@@ -17,77 +19,41 @@ class PostController {
    * @param {Response} ctx.response
    * @param {View} ctx.view
    */
-  async index ({ request, response, view }) {
+  async index({ request, auth }) {
+    const user = await auth.getUser();
+
+    if (await user.can("read_private_posts")) {
+      const posts = await Post.all();
+      return posts;
+    }
+    const posts = await Post.query()
+      .where({ type: "public" })
+      .fecth();
+    return posts;
   }
 
-  /**
-   * Render a form to be used for creating a new post.
-   * GET posts/create
-   *
-   * @param {object} ctx
-   * @param {Request} ctx.request
-   * @param {Response} ctx.response
-   * @param {View} ctx.view
-   */
-  async create ({ request, response, view }) {
+  async store({ request, auth }) {
+    const data = request.only(["title", "content", "type"]);
+    const post = await Post.create({ ...data, user_id: auth.user.id });
+    return post;
   }
+  async show({ params, auth, response }) {
+    const post = await Post.findOrFail(params.id);
 
-  /**
-   * Create/save a new post.
-   * POST posts
-   *
-   * @param {object} ctx
-   * @param {Request} ctx.request
-   * @param {Response} ctx.response
-   */
-  async store ({ request, response }) {
-  }
+    if (post.type === "public") {
+      return post;
+    }
 
-  /**
-   * Display a single post.
-   * GET posts/:id
-   *
-   * @param {object} ctx
-   * @param {Request} ctx.request
-   * @param {Response} ctx.response
-   * @param {View} ctx.view
-   */
-  async show ({ params, request, response, view }) {
-  }
-
-  /**
-   * Render a form to update an existing post.
-   * GET posts/:id/edit
-   *
-   * @param {object} ctx
-   * @param {Request} ctx.request
-   * @param {Response} ctx.response
-   * @param {View} ctx.view
-   */
-  async edit ({ params, request, response, view }) {
-  }
-
-  /**
-   * Update post details.
-   * PUT or PATCH posts/:id
-   *
-   * @param {object} ctx
-   * @param {Request} ctx.request
-   * @param {Response} ctx.response
-   */
-  async update ({ params, request, response }) {
-  }
-
-  /**
-   * Delete a post with id.
-   * DELETE posts/:id
-   *
-   * @param {object} ctx
-   * @param {Request} ctx.request
-   * @param {Response} ctx.response
-   */
-  async destroy ({ params, request, response }) {
+    const user = await auth.getUser();
+    if (await user.can("read_private_posts")) {
+      return post;
+    }
+    return response.status(400).send({
+      error: {
+        message: "Você não tem permissao de leitura!"
+      }
+    });
   }
 }
 
-module.exports = PostController
+module.exports = PostController;

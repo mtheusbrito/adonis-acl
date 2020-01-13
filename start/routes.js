@@ -26,10 +26,11 @@ Route.resource('/posts', 'PostController').apiOnly()
 .middleware(['auth', 'is:(adminstrator || moderator)'])
 
 Route.get('/posts', 'PostController.index')
-.middleware(['auth', 'can:read_posts'])
+.middleware(['auth', 'can:(read_posts || read_private_posts)'])
 
 Route.get('/posts/:id', 'PostController.show')
-.middleware(['auth', 'can:read_posts'])
+.middleware(['auth', 'can:(read_posts || read_privatge_posts)'])
+
 Route.resource("/permissions", "PermissionController")
   .apiOnly()
   .middleware("auth");

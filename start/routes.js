@@ -16,13 +16,24 @@
 /** @type {typeof import('@adonisjs/framework/src/Route/Manager')} */
 const Route = use("Route");
 
-Route.get("/", () => {
-  return { greeting: "Hello world in JSON" };
-});
 
-Route.resource("permissions", "PermissionController")
+Route.post('/sessions', 'SessionController.store');
+Route.post('/users', 'UserController.store');
+Route.post('/users/:id', 'UserController.update').middleware('auth');
+
+Route.resource('/posts', 'PostController').apiOnly()
+.except(['index', 'show'])
+.middleware(['auth', 'is:(adminstrator || moderator)'])
+
+Route.get('/posts', 'PostController.index')
+.middleware(['auth', 'can:read_posts'])
+
+Route.get('/posts/:id', 'PostController.show')
+.middleware(['auth', 'can:read_posts'])
+Route.resource("/permissions", "PermissionController")
   .apiOnly()
   .middleware("auth");
-  Route.resource("roles", "RoleController")
+
+Route.resource("/roles", "RoleController")
   .apiOnly()
   .middleware("auth");
